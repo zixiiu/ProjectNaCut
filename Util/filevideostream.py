@@ -1,6 +1,6 @@
 # import the necessary packages
 from threading import Thread
-#from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue
 import sys
 import cv2
 import time
@@ -30,31 +30,47 @@ class FileVideoStream:
 
 		# initialize the queue used to store frames read from
 		# the video file
-		self.Q = Queue(maxsize=queue_size)
+		self.FrameQueue = Queue(maxsize=queue_size)
+		self.CutQueue = Queue(maxsize=queue_size)
 		# intialize thread
 		self.thread = Thread(target=self.update, args=())
+		self.cutProc = Thread(target=self.updateSSIM, args=())
 		self.thread.daemon = True
 		self.cutDet = CutDetector(0.3)
 
 	def start(self):
 		# start a thread to read frames from the file video stream
 		self.thread.start()
+		self.cutProc.start()
 		return self
 
-	def update(self):
-		# keep looping infinitely
+	def updateSSIM(self):
 		while True:
-			# if the thread indicator variable is set, stop the
-			# thread
 			if self.stopped:
 				break
-
 			if self.paused:
-				time.sleep(0.1)  # Rest for 10ms, we don't need update
+				time.sleep(0.1)
 				continue
 
-			# otherwise, ensure the queue has room in it
-			if not self.Q.full():
+			if not self.FrameQueue.empty():
+				grabbed, curr_frame, frame = self.FrameQueue.get()
+				isCut = self.cutDet.putFrame(frame)
+
+				self.CutQueue.put((grabbed, curr_frame, frame, isCut))
+			else:
+				time.sleep(0.1)
+
+
+	def update(self):
+
+		while True:
+			if self.stopped:
+				break
+			if self.paused:
+				time.sleep(0.1)
+				continue
+
+			if not self.FrameQueue.full():
 				# read the next frame from the file
 				(grabbed, frame) = self.stream.read()
 
@@ -66,20 +82,17 @@ class FileVideoStream:
 				curr_frame = int(self.stream.get(cv2.CAP_PROP_POS_FRAMES))
 
 				# cut det
-				isCut = self.cutDet.putFrame(frame)
+				#isCut = self.cutDet.putFrame(frame)
 				#isCut = False
 
 				# yolo
 				#boxs = self.yolo.detect_image(frame)
 
-
-
-
 				if self.transform:
 					frame = self.transform(frame)
 
 				# add the frame to the queue
-				self.Q.put((grabbed, curr_frame, frame, isCut))
+				self.FrameQueue.put((grabbed, curr_frame, frame))
 			else:
 				time.sleep(0.1)  # Rest for 10ms, we have a full queue
 
@@ -88,7 +101,7 @@ class FileVideoStream:
 	def read(self):
 		# return next frame in the queue
 		#print(self.Q.qsize())
-		return self.Q.get()
+		return self.CutQueue.get()
 
 	# Insufficient to have consumer use while(more()) which does
 	# not take into account if the producer has reached end of
@@ -99,11 +112,11 @@ class FileVideoStream:
 	def more(self):
 		# return True if there are still frames in the queue. If stream is not stopped, try to wait a moment
 		tries = 0
-		while self.Q.qsize() == 0 and not self.stopped and tries < 5:
+		while self.FrameQueue.qsize() == 0 and not self.stopped and tries < 5:
 			time.sleep(0.1)
 			tries += 1
 
-		return self.Q.qsize() > 0
+		return self.FrameQueue.qsize() > 0
 
 	def pause(self):
 		self.paused = True
