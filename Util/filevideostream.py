@@ -1,6 +1,6 @@
 # import the necessary packages
 from threading import Thread
-from multiprocessing import Process, Queue, Value
+from multiprocessing import Process, Queue, Value, Lock, Manager
 import sys
 import cv2
 import time
@@ -20,7 +20,7 @@ from PIL import Image
 from skimage.measure import compare_ssim
 
 
-def updateSSIM(stopped, FrameQueue, CutQueue, lastFrameNumber):
+def updateSSIM(stopped, FrameQueue, CutQueue, lastFrameNumber,lock):
     while True:
         if stopped:
             break
@@ -35,10 +35,12 @@ def updateSSIM(stopped, FrameQueue, CutQueue, lastFrameNumber):
                 score = compare_ssim(last_frame, frame_gray, gradient=False, full=False, multichannel=True)
 
             while lastFrameNumber.value != curr_frame - 1:
-                time.sleep(0.1)
+                time.sleep(0.01)
+            lock.acquire()
 
             CutQueue.put((grabbed, curr_frame, frame, score))
             lastFrameNumber.value = curr_frame
+            lock.release()
         else:
             time.sleep(0.1)
 
@@ -55,22 +57,24 @@ class FileVideoStream:
 
         # initialize the queue used to store frames read from
         # the video file
-        self.FrameQueue = Queue(maxsize=queue_size)
-        self.CutQueue = Queue(maxsize=queue_size)
-        self.takeQueue = Queue(maxsize=queue_size)
+        self.Manager = Manager()
+        self.FrameQueue = self.Manager.Queue(maxsize=queue_size)
+        self.CutQueue = self.Manager.Queue(maxsize=queue_size)
+        self.takeQueue = self.Manager.Queue(maxsize=queue_size)
         # intialize thread
         self.thread = Thread(target=self.update, args=())
 
-        self.lastFrameNumber = Value('d', 0)
+        self.lastFrameNumber = self.Manager.Value('i', 0)
+        self.lock = Lock()
 
         self.thread.daemon = True
         self.cutDet = CutDetector(0.3)
-        self.processNumber = 4
+        self.processNumber = 8
         self.cutProc = []
         self.takeProc = Thread(target=self.updateCut, args=())
         for i in range(self.processNumber):
             self.cutProc.append(
-                Process(target=updateSSIM, args=(self.stopped, self.FrameQueue, self.CutQueue, self.lastFrameNumber)))
+                Process(target=updateSSIM, args=(self.stopped, self.FrameQueue, self.CutQueue, self.lastFrameNumber, self.lock,)))
 
     def start(self):
         # start a thread to read frames from the file video stream

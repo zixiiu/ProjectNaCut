@@ -44,7 +44,7 @@ def main(yolo):
     writeVideo_flag = False
     doFace_flag = False
 
-    video_capture = filevideostream.FileVideoStream("F:\Testv\VideoOnly\\604_0_new.mp4")
+    video_capture = filevideostream.FileVideoStream("F:\Testv\VideoOnly\\487_1_old.mp4")
     video_capture.start()
         # cv2.VideoCapture("/media/seb101-user/DATA/TestV_videos/447_1_old.mp4")
 
@@ -148,8 +148,9 @@ def main(yolo):
             list_file.write('\n')
             
         fps  = 1/(time.time()- tfps)
-        print("fps= %f, frame:%0.f, cut:%s, tget:%.2f tyolo:%.2f, ttrack:%.2f, tvis: %.2f"%(fps, frame_no, isCut, tget*1000, tyolo*1000, ttrack*1000, tvis*1000))
-        
+        print("fps= %f, frame:%0.f, tget:%.2f tyolo:%.2f, ttrack:%.2f, tvis: %.2f"%(fps, frame_no, tget*1000, tyolo*1000, ttrack*1000, tvis*1000))
+        if isCut:
+            print("==============================================================================================")
         # Press Q to stop!
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
