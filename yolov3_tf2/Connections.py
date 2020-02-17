@@ -20,7 +20,7 @@ class YOLO(object):
         #takes a cv2 image!
         img_in = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         img_in = tf.expand_dims(img_in, 0)
-        img_in = transform_images(img_in, 320)
+        img_in = transform_images(img_in, 416)
         boxes, objectness, classes, nums = self.yolo.predict(img_in)
         boxes, objectness, classes, nums = boxes[0], objectness[0], classes[0], nums[0]
         return_boxs = []

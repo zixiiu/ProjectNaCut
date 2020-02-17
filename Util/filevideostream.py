@@ -1,6 +1,6 @@
 # import the necessary packages
 from threading import Thread
-from multiprocessing import Process, Queue, Value, Lock, Manager
+from multiprocessing import Process, Lock, Manager
 import sys
 import cv2
 import time
@@ -17,32 +17,10 @@ from Util.CutDetectior import CutDetector
 from yolov3_tf2.Connections import YOLO
 from PIL import Image
 
-from skimage.measure import compare_ssim
+from Util.updateSSIM import updateSSIM
 
 
-def updateSSIM(stopped, FrameQueue, CutQueue, lastFrameNumber,lock):
-    while True:
-        if stopped:
-            break
 
-        if not FrameQueue.empty():
-            (grabbed, curr_frame, frame, last_frame) = FrameQueue.get()
-            score = 0
-            if last_frame is not None:
-                # last_frame = cv2.cvtColor()
-                last_frame = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
-                frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                score = compare_ssim(last_frame, frame_gray, gradient=False, full=False, multichannel=True)
-
-            while lastFrameNumber.value != curr_frame - 1:
-                time.sleep(0.01)
-            lock.acquire()
-
-            CutQueue.put((grabbed, curr_frame, frame, score))
-            lastFrameNumber.value = curr_frame
-            lock.release()
-        else:
-            time.sleep(0.1)
 
 
 class FileVideoStream:

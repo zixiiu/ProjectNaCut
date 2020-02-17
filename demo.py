@@ -22,13 +22,33 @@ from tools import generate_detections as gdet
 from deep_sort.detection import Detection as ddet
 import Util.CutDetectior
 
+
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 #import face_recognition
 warnings.filterwarnings('ignore')
 
-def main(yolo):
+def yoloDetectProcess(stopped, inQueue, outQueue, lastFrameNumber):
+    yolo = YOLO()
+    while True:
+        if stopped:
+            break
 
+        if not inQueue.empty():
+            franeNo, frame = inQueue.get()
+            boxs = yolo.detect_image(frame)
+
+            while lastFrameNumber.value != franeNo - 1:
+                time.sleep(0.01)
+
+            outQueue.put((franeNo, frame, boxs))
+            lastFrameNumber.value = franeNo
+
+        else:
+            time.sleep(0.1)
+
+def main():
+    yolo = YOLO()
    # Definition of the parameters
     max_cosine_distance = 0.3
     nn_budget = None
@@ -44,7 +64,7 @@ def main(yolo):
     writeVideo_flag = False
     doFace_flag = False
 
-    video_capture = filevideostream.FileVideoStream("F:\Testv\VideoOnly\\487_1_old.mp4")
+    video_capture = filevideostream.FileVideoStream("./testVideo/604_0_new.mp4")
     video_capture.start()
         # cv2.VideoCapture("/media/seb101-user/DATA/TestV_videos/447_1_old.mp4")
 
@@ -63,6 +83,9 @@ def main(yolo):
         frame_index = -1
 
     fps = 0.0
+
+    #yolo multiprocess queues/values
+
     while True:
         tfps = time.time()
         tget = time.time()
@@ -162,4 +185,4 @@ def main(yolo):
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    main(YOLO())
+    main()
