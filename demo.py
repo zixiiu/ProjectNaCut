@@ -148,7 +148,7 @@ def main(yolo):
             list_file.write('\n')
             
         fps  = 1/(time.time()- tfps)
-        print("fps= %f, cut:%s, tget:%.2f tyolo:%.2f, ttrack:%.2f, tvis: %.2f"%(fps, isCut, tget*1000, tyolo*1000, ttrack*1000, tvis*1000))
+        print("fps= %f, frame:%0.f, cut:%s, tget:%.2f tyolo:%.2f, ttrack:%.2f, tvis: %.2f"%(fps, frame_no, isCut, tget*1000, tyolo*1000, ttrack*1000, tvis*1000))
         
         # Press Q to stop!
         if cv2.waitKey(1) & 0xFF == ord('q'):
