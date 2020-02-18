@@ -6,6 +6,7 @@ from yolov3_tf2.models import (
 from yolov3_tf2.dataset import transform_images
 from yolov3_tf2.utils import draw_outputs
 import numpy as np
+import time
 
 class YOLO(object):
     def __init__(self):
@@ -21,7 +22,7 @@ class YOLO(object):
         img_in = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         img_in = tf.expand_dims(img_in, 0)
         img_in = transform_images(img_in, 416)
-        boxes, objectness, classes, nums = self.yolo.predict(img_in)
+        boxes, objectness, classes, nums = self.yolo.predict_on_batch(img_in)
         boxes, objectness, classes, nums = boxes[0], objectness[0], classes[0], nums[0]
         return_boxs = []
         for i in range(nums):

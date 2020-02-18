@@ -1,8 +1,8 @@
-from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity
 import time
 import cv2
 
-def updateSSIM(stopped, FrameQueue, CutQueue, lastFrameNumber,lock):
+def updateSSIM(stopped, FrameQueue, CutQueue, lastFrameNumber):
     while True:
         if stopped:
             break
@@ -14,14 +14,13 @@ def updateSSIM(stopped, FrameQueue, CutQueue, lastFrameNumber,lock):
                 # last_frame = cv2.cvtColor()
                 last_frame = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
                 frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                score = compare_ssim(last_frame, frame_gray, gradient=False, full=False, multichannel=True)
+                score = structural_similarity(last_frame, frame_gray, gradient=False, full=False, multichannel=False)
 
             while lastFrameNumber.value != curr_frame - 1:
                 time.sleep(0.01)
-            lock.acquire()
 
             CutQueue.put((grabbed, curr_frame, frame, score))
             lastFrameNumber.value = curr_frame
-            lock.release()
+
         else:
             time.sleep(0.1)

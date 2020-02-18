@@ -1,3 +1,6 @@
+from yolov3_tf2.Connections import YOLO
+import time
+
 def yoloDetectProcess(stopped, inQueue, outQueue, lastFrameNumber):
     yolo = YOLO()
     while True:
@@ -5,14 +8,14 @@ def yoloDetectProcess(stopped, inQueue, outQueue, lastFrameNumber):
             break
 
         if not inQueue.empty():
-            franeNo, frame = inQueue.get()
+            (grabbed, curr_frame, frame, isCut) = inQueue.get()
             boxs = yolo.detect_image(frame)
 
-            while lastFrameNumber.value != franeNo - 1:
+            while lastFrameNumber.value != curr_frame - 1:
                 time.sleep(0.01)
 
-            outQueue.put((franeNo, frame, boxs))
-            lastFrameNumber.value = franeNo
+            outQueue.put((grabbed, curr_frame, frame, isCut, boxs))
+            lastFrameNumber.value = curr_frame
 
         else:
             time.sleep(0.1)

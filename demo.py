@@ -24,28 +24,10 @@ import Util.CutDetectior
 
 
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
+
 #import face_recognition
-warnings.filterwarnings('ignore')
 
-def yoloDetectProcess(stopped, inQueue, outQueue, lastFrameNumber):
-    yolo = YOLO()
-    while True:
-        if stopped:
-            break
 
-        if not inQueue.empty():
-            franeNo, frame = inQueue.get()
-            boxs = yolo.detect_image(frame)
-
-            while lastFrameNumber.value != franeNo - 1:
-                time.sleep(0.01)
-
-            outQueue.put((franeNo, frame, boxs))
-            lastFrameNumber.value = franeNo
-
-        else:
-            time.sleep(0.1)
 
 def main():
     yolo = YOLO()
@@ -106,7 +88,6 @@ def main():
         boxs = yolo.detect_image(frame)
        # print("box_num",len(boxs))
         features = encoder(frame,boxs)
-        
         # score to 1.0 here).
         detections = [Detection(bbox, 1.0, feature) for bbox, feature in zip(boxs, features)]
         tyolo = time.time() - tyolo
@@ -171,7 +152,7 @@ def main():
             list_file.write('\n')
             
         fps  = 1/(time.time()- tfps)
-        print("fps= %f, frame:%0.f, tget:%.2f tyolo:%.2f, ttrack:%.2f, tvis: %.2f"%(fps, frame_no, tget*1000, tyolo*1000, ttrack*1000, tvis*1000))
+        print("fps= %.2f, frame:%0.f, tget:%.2f tyolo:%.2f, ttrack:%.2f, tvis: %.2f"%(fps, frame_no, tget*1000, tyolo*1000, ttrack*1000, tvis*1000))
         if isCut:
             print("==============================================================================================")
         # Press Q to stop!

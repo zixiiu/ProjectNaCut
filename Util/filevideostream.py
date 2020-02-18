@@ -14,11 +14,11 @@ import time
 from Util.CutDetectior import CutDetector
 
 # yolo v3, tf2
-from yolov3_tf2.Connections import YOLO
-from PIL import Image
+#from yolov3_tf2.Connections import YOLO
+#from PIL import Image
 
 from Util.updateSSIM import updateSSIM
-
+from Util.yoloDect import yoloDetectProcess
 
 
 
@@ -33,33 +33,41 @@ class FileVideoStream:
         self.transform = transform
         # self.yolo = YOLO()
 
-        # initialize the queue used to store frames read from
-        # the video file
+        # Queue n Value
         self.Manager = Manager()
-        self.FrameQueue = self.Manager.Queue(maxsize=queue_size)
-        self.CutQueue = self.Manager.Queue(maxsize=queue_size)
-        self.takeQueue = self.Manager.Queue(maxsize=queue_size)
+        self.raw_frame_queue = self.Manager.Queue(maxsize=queue_size)
+        self.ssim_queue = self.Manager.Queue(maxsize=queue_size)
+        self.isCut_queue = self.Manager.Queue(maxsize=queue_size)
+        self.yolo_queue = self.Manager.Queue(maxsize=queue_size)
+        self.ssim_sync_fn = self.Manager.Value('i', 0)
+        self.yolo_sync_fn = self.Manager.Value('i', 0)
+
         # intialize thread
-        self.thread = Thread(target=self.update, args=())
-
-        self.lastFrameNumber = self.Manager.Value('i', 0)
-        self.lock = Lock()
-
-        self.thread.daemon = True
+        self.io_thread = Thread(target=self.update, args=())
+        self.isCut_thread = Thread(target=self.updateCut, args=())
+        self.io_thread.daemon = True
         self.cutDet = CutDetector(0.3)
-        self.processNumber = 8
-        self.cutProc = []
-        self.takeProc = Thread(target=self.updateCut, args=())
-        for i in range(self.processNumber):
-            self.cutProc.append(
-                Process(target=updateSSIM, args=(self.stopped, self.FrameQueue, self.CutQueue, self.lastFrameNumber, self.lock,)))
+
+
+        # init process
+        self.SSIMprocessNumber = 8
+        self.yoloProcessNumber = 1
+        self.SSIMProc = []
+        self.yoloProc = []
+        for i in range(self.SSIMprocessNumber):
+            self.SSIMProc.append(
+                Process(target=updateSSIM, args=(self.stopped, self.raw_frame_queue, self.ssim_queue, self.ssim_sync_fn,)))
+        for i in range(self.yoloProcessNumber):
+            self.yoloProc.append(Process(target=yoloDetectProcess, args=(self.stopped, self.isCut_queue, self.yolo_queue, self.yolo_sync_fn)))
 
     def start(self):
         # start a thread to read frames from the file video stream
-        self.thread.start()
-        for i in self.cutProc:
+        self.io_thread.start()
+        for i in self.SSIMProc:
             i.start()
-        self.takeProc.start()
+        # for i in self.yoloProc:
+        #     i.start()
+        self.isCut_thread.start()
         return self
 
     def updateCut(self):
@@ -67,12 +75,12 @@ class FileVideoStream:
             if self.stopped:
                 break
 
-            if not self.CutQueue.empty():
-                (grabbed, curr_frame, frame, score) = self.CutQueue.get()
+            if not self.ssim_queue.empty():
+                (grabbed, curr_frame, frame, score) = self.ssim_queue.get()
                 # last_frame = cv2.cvtColor()
                 isCut = self.cutDet.putFrame(score)
 
-                self.takeQueue.put((grabbed, curr_frame, frame, isCut))
+                self.isCut_queue.put((grabbed, curr_frame, frame, isCut))
             else:
                 time.sleep(0.1)
 
@@ -85,7 +93,7 @@ class FileVideoStream:
                 time.sleep(0.1)
                 continue
 
-            if not self.FrameQueue.full():
+            if not self.raw_frame_queue.full():
                 # read the next frame from the file
                 (grabbed, frame) = self.stream.read()
 
@@ -98,7 +106,7 @@ class FileVideoStream:
                 if self.transform:
                     frame = self.transform(frame)
 
-                self.FrameQueue.put((grabbed, curr_frame, frame, last_frame))
+                self.raw_frame_queue.put((grabbed, curr_frame, frame, last_frame))
                 last_frame = frame
             else:
                 time.sleep(0.1)  # Rest for 10ms, we have a full queue
@@ -108,7 +116,7 @@ class FileVideoStream:
     def read(self):
         # return next frame in the queue
         # print(self.Q.qsize())
-        return self.takeQueue.get()
+        return self.isCut_queue.get()
 
     # Insufficient to have consumer use while(more()) which does
     # not take into account if the producer has reached end of
@@ -119,11 +127,11 @@ class FileVideoStream:
     def more(self):
         # return True if there are still frames in the queue. If stream is not stopped, try to wait a moment
         tries = 0
-        while self.FrameQueue.qsize() == 0 and not self.stopped and tries < 5:
+        while self.raw_frame_queue.qsize() == 0 and not self.stopped and tries < 5:
             time.sleep(0.1)
             tries += 1
 
-        return self.FrameQueue.qsize() > 0
+        return self.raw_frame_queue.qsize() > 0
 
     def pause(self):
         self.paused = True
@@ -135,7 +143,7 @@ class FileVideoStream:
         # indicate that the thread should be stopped
         self.stopped = True
         # wait until stream resources are released (producer thread might be still grabbing frame)
-        self.thread.join()
+        self.io_thread.join()
 
     def getFrameCount(self):
         return self.stream.get(cv2.CAP_PROP_FRAME_COUNT)
