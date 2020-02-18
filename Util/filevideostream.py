@@ -50,7 +50,7 @@ class FileVideoStream:
 
 
         # init process
-        self.SSIMprocessNumber = 8
+        self.SSIMprocessNumber = 12
         self.yoloProcessNumber = 1
         self.SSIMProc = []
         self.yoloProc = []
