@@ -7,6 +7,13 @@ from yolov3_tf2.dataset import transform_images
 from yolov3_tf2.utils import draw_outputs
 import numpy as np
 import time
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# if gpus:
+#     try:
+#         for gpu in gpus:
+#             tf.config.experimental.set_memory_growth(gpu, False)
+#     except RuntimeError as e:
+#         print(e)
 
 class YOLO(object):
     def __init__(self):

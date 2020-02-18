@@ -25,7 +25,7 @@ import Util.CutDetectior
 
 import os
 
-#import face_recognition
+import face_recognition
 
 
 
@@ -44,7 +44,7 @@ def main():
     tracker = Tracker(metric)
 
     writeVideo_flag = False
-    doFace_flag = False
+    doFace_flag = True
 
     video_capture = filevideostream.FileVideoStream("./testVideo/604_0_new.mp4")
     video_capture.start()
@@ -86,7 +86,7 @@ def main():
 
         tyolo = time.time()
         boxs = yolo.detect_image(frame)
-       # print("box_num",len(boxs))
+        # print("box_num",len(boxs))
         features = encoder(frame,boxs)
         # score to 1.0 here).
         detections = [Detection(bbox, 1.0, feature) for bbox, feature in zip(boxs, features)]
@@ -107,9 +107,27 @@ def main():
         tracker.update(detections)
         ttrack = time.time() - ttrack
 
-        tvis = time.time()
-        #draw image
 
+        #draw image
+        tface = time.time()
+        for det in detections:
+            bbox = det.to_tlbr()
+            x1 = int(bbox[0])
+            y1 = int(bbox[1])
+            x2 = int(bbox[2])
+            y2 = int(bbox[3])
+            peopleFrame = frame[y1:y2, x1:x2]
+            if doFace_flag:
+                face_locations = face_recognition.face_locations(peopleFrame, model='cnn')
+                for top, right, bottom, left in face_locations:
+                    top += y1
+                    bottom += y1
+                    right += x1
+                    left += x1
+                    cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+        tface = time.time() - tface
+
+        tvis = time.time()
         for det in detections:
             bbox = det.to_tlbr()
             x1 = int(bbox[0])
@@ -117,15 +135,7 @@ def main():
             x2 = int(bbox[2])
             y2 = int(bbox[3])
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            peopleFrame = frame[y1:y2, x1:x2]
-            if doFace_flag:
-                face_locations = face_recognition.face_locations(peopleFrame)
-                for top, right, bottom, left in face_locations:
-                    top += y1
-                    bottom += y1
-                    right += x1
-                    left += x1
-                    cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+
 
         for track in tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
@@ -152,7 +162,7 @@ def main():
             list_file.write('\n')
             
         fps  = 1/(time.time()- tfps)
-        print("fps= %.2f, frame:%0.f, tget:%.2f tyolo:%.2f, ttrack:%.2f, tvis: %.2f"%(fps, frame_no, tget*1000, tyolo*1000, ttrack*1000, tvis*1000))
+        print("fps= %.2f, frame:%0.f, tget:%.2f tyolo:%.2f, ttrack:%.2f, tface:%.2f, tvis: %.2f"%(fps, frame_no, tget*1000, tyolo*1000, ttrack*1000,tface * 1000, tvis*1000))
         if isCut:
             print("==============================================================================================")
         # Press Q to stop!

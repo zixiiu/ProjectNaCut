@@ -14,12 +14,15 @@ import time
 from Util.CutDetectior import CutDetector
 
 # yolo v3, tf2
-#from yolov3_tf2.Connections import YOLO
+# from yolov3_tf2.Connections import YOLO
 #from PIL import Image
 
 from Util.updateSSIM import updateSSIM
-from Util.yoloDect import yoloDetectProcess
+# from Util.yoloDect import yoloDetectProcess
+# from Util.faceDect import faceDetectProcess
 
+from deep_sort.detection import Detection
+from tools import generate_detections as gdet
 
 
 
@@ -38,9 +41,9 @@ class FileVideoStream:
         self.raw_frame_queue = self.Manager.Queue(maxsize=queue_size)
         self.ssim_queue = self.Manager.Queue(maxsize=queue_size)
         self.isCut_queue = self.Manager.Queue(maxsize=queue_size)
-        self.yolo_queue = self.Manager.Queue(maxsize=queue_size)
+        self.face_queue = self.Manager.Queue(maxsize=queue_size)
         self.ssim_sync_fn = self.Manager.Value('i', 0)
-        self.yolo_sync_fn = self.Manager.Value('i', 0)
+        # self.face_sync_fn = self.Manager.Value('i', 0)
 
         # intialize thread
         self.io_thread = Thread(target=self.update, args=())
@@ -48,25 +51,31 @@ class FileVideoStream:
         self.io_thread.daemon = True
         self.cutDet = CutDetector(0.3)
 
+        # deep sort
+        model_filename = 'model_data/mars-small128.pb'
+        self.encoder = gdet.create_box_encoder(model_filename, batch_size=1)
+
 
         # init process
         self.SSIMprocessNumber = 12
-        self.yoloProcessNumber = 1
+        # self.faceProcessNumber = 1
         self.SSIMProc = []
-        self.yoloProc = []
+        # self.faceProc = []
         for i in range(self.SSIMprocessNumber):
             self.SSIMProc.append(
                 Process(target=updateSSIM, args=(self.stopped, self.raw_frame_queue, self.ssim_queue, self.ssim_sync_fn,)))
-        for i in range(self.yoloProcessNumber):
-            self.yoloProc.append(Process(target=yoloDetectProcess, args=(self.stopped, self.isCut_queue, self.yolo_queue, self.yolo_sync_fn)))
+        # for i in range(self.faceProcessNumber):
+        #     self.faceProc.append(Thread(target=faceDetectProcess, args=(self.stopped, self.isCut_queue, self.face_queue, self.face_sync_fn,)))
+
 
     def start(self):
         # start a thread to read frames from the file video stream
         self.io_thread.start()
         for i in self.SSIMProc:
             i.start()
-        # for i in self.yoloProc:
+        # for i in self.faceProc:
         #     i.start()
+
         self.isCut_thread.start()
         return self
 
@@ -79,6 +88,10 @@ class FileVideoStream:
                 (grabbed, curr_frame, frame, score) = self.ssim_queue.get()
                 # last_frame = cv2.cvtColor()
                 isCut = self.cutDet.putFrame(score)
+                # boxs = self.yolo.detect_image(frame)
+                # features = self.encoder(frame, boxs)
+                # score to 1.0 here).
+                # detections = [Detection(bbox, 1.0, feature) for bbox, feature in zip(boxs, features)]
 
                 self.isCut_queue.put((grabbed, curr_frame, frame, isCut))
             else:
