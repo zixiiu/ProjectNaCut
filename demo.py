@@ -46,7 +46,7 @@ def main():
     writeVideo_flag = False
     doFace_flag = True
 
-    video_capture = filevideostream.FileVideoStream("./testVideo/test.mp4")
+    video_capture = filevideostream.FileVideoStream("./testVideo/smaller.mp4")
     video_capture.start()
         # cv2.VideoCapture("/media/seb101-user/DATA/TestV_videos/447_1_old.mp4")
 
@@ -118,7 +118,7 @@ def main():
             y2 = int(bbox[3])
             peopleFrame = frame[y1:y2, x1:x2]
             if doFace_flag:
-                face_locations = face_recognition.face_locations(peopleFrame, model='cnn')
+                face_locations = face_recognition.face_locations(peopleFrame)
                 for top, right, bottom, left in face_locations:
                     top += y1
                     bottom += y1
@@ -134,7 +134,7 @@ def main():
             y1 = int(bbox[1])
             x2 = int(bbox[2])
             y2 = int(bbox[3])
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+            #cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
 
         for track in tracker.tracks:
