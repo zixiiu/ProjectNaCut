@@ -4,6 +4,7 @@ from multiprocessing import Process, Lock, Manager
 import sys
 import cv2
 import time
+import os
 
 # import the Queue class from Python 3
 
@@ -30,6 +31,7 @@ class FileVideoStream:
     def __init__(self, path, transform=None, queue_size=64):
         # initialize the file video stream along with the boolean
         # used to indicate if the thread should be stopped or not
+        assert os.path.isfile(path)
         self.stream = cv2.VideoCapture(path)
         self.stopped = False
         self.paused = False
@@ -57,7 +59,7 @@ class FileVideoStream:
 
 
         # init process
-        self.SSIMprocessNumber = 12
+        self.SSIMprocessNumber = 8
         # self.faceProcessNumber = 1
         self.SSIMProc = []
         # self.faceProc = []

@@ -22,6 +22,14 @@ from tensorflow.keras.losses import (
 from .batch_norm import BatchNormalization
 from .utils import broadcast_iou
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, False)
+    except RuntimeError as e:
+        print(e)
+
 flags.DEFINE_integer('yolo_max_boxes', 100,
                      'maximum number of boxes per image')
 flags.DEFINE_float('yolo_iou_threshold', 0.5, 'iou threshold')

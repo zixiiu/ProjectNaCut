@@ -1,6 +1,8 @@
 import tensorflow as tf
 
 
+
+
 class BatchNormalization(tf.keras.layers.BatchNormalization):
     """
     Make trainable=False freeze BN for real (the og version is sad)

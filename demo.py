@@ -46,7 +46,7 @@ def main():
     writeVideo_flag = False
     doFace_flag = True
 
-    video_capture = filevideostream.FileVideoStream("./testVideo/604_0_new.mp4")
+    video_capture = filevideostream.FileVideoStream("./testVideo/test.mp4")
     video_capture.start()
         # cv2.VideoCapture("/media/seb101-user/DATA/TestV_videos/447_1_old.mp4")
 
