@@ -21,7 +21,9 @@ import face_recognition
 
 
 class videoSession(object):
-    def __init__(self, videoPath):
+    def __init__(self, videoPath, visualize = False):
+        self.visualizeFlag = visualize
+        # Yolo
         self.yolo = YOLO()
         # Definition of the parameters
         max_cosine_distance = 0.3
@@ -37,8 +39,23 @@ class videoSession(object):
 
         self.video_capture = filevideostream.FileVideoStream(videoPath)
 
+        #cutID
+        self.cut_id = 0
+
     def start(self):
         self.video_capture.start()
+
+    def visualize(self, inDict, frame):
+        cv2.putText(frame, 'frame %d, cut%d'%(inDict['frame_no'],inDict['cut_id']),(0,0),0,5e-3 * 200, (0,255,0),2)
+        for people in inDict['person']:
+            cv2.rectangle(frame, (people['x1'], people['y1']), (people["x2"], people['y2']), (255,255,255), 2)
+            if people['face']:
+                x1 = people['x1'] + people['face']['x1']
+                x2 = people['x2'] + people['face']['y1']
+                y1 = people['y1'] + people['face']['x2']
+                y2 = people['y2'] + people['face']['y2']
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        cv2.imshow('', frame)
 
     def nextFrame(self):
         ret, frame_no, frame, isCut = self.video_capture.read()
@@ -62,11 +79,13 @@ class videoSession(object):
         # Call the tracker
         if isCut:
             self.tracker.delete_all()
+            self.cut_id += 1
         self.tracker.predict()
         self.tracker.update(detections)
 
         resDict['frame_no'] = frame_no
         resDict['is_cut'] = isCut
+        resDict['cut_id'] = self.cut_id
         resDict['person'] = []
         for track in self.tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
@@ -85,5 +104,6 @@ class videoSession(object):
                 break
             pifDict['face'] = faceDict
             resDict['person'].append(pifDict)
-
+        if self.visualizeFlag:
+            self.visualize(resDict,frame)
         return resDict

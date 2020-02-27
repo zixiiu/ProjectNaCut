@@ -1,7 +1,7 @@
 from video_processor.videoSession import videoSession
 
 if __name__ == '__main__':
-    a = videoSession("./testVideo/smaller.mp4")
+    a = videoSession("./testVideo/smaller.mp4", visualize=True)
     a.start()
     while True:
         ret = a.nextFrame()
