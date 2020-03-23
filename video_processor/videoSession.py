@@ -21,8 +21,9 @@ import face_recognition
 
 
 class videoSession(object):
-    def __init__(self, videoPath, visualize = False):
+    def __init__(self, videoPath, visualize = False, cnn = False):
         self.visualizeFlag = visualize
+        self.cnnFlag = cnn
         # Yolo
         self.yolo = YOLO()
         # Definition of the parameters
@@ -45,17 +46,8 @@ class videoSession(object):
     def start(self):
         self.video_capture.start()
 
-    def visualize(self, inDict, frame):
-        cv2.putText(frame, 'frame %d, cut%d'%(inDict['frame_no'],inDict['cut_id']),(0,0),0,5e-3 * 200, (0,255,0),2)
-        for people in inDict['person']:
-            cv2.rectangle(frame, (people['x1'], people['y1']), (people["x2"], people['y2']), (255,255,255), 2)
-            if people['face']:
-                x1 = people['x1'] + people['face']['x1']
-                x2 = people['x2'] + people['face']['y1']
-                y1 = people['y1'] + people['face']['x2']
-                y2 = people['y2'] + people['face']['y2']
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-        cv2.imshow('', frame)
+    def release(self):
+        self.video_capture.stream.release()
 
     def nextFrame(self):
         ret, frame_no, frame, isCut = self.video_capture.read()
@@ -98,12 +90,27 @@ class videoSession(object):
             pifDict = {'trackId': track.track_id, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2}
             peopleFrame = frame[y1:y2, x1:x2]
             faceDict = None
-            face_locations = face_recognition.face_locations(peopleFrame)
+            if self.cnnFlag:
+                face_locations = face_recognition.face_locations(peopleFrame, model='cnn')
+            else:
+                face_locations = face_recognition.face_locations(peopleFrame)
             for top, right, bottom, left in face_locations:
                 faceDict = {'x1': left, 'x2': right, 'y1': top, 'y2': bottom}
                 break
             pifDict['face'] = faceDict
             resDict['person'].append(pifDict)
         if self.visualizeFlag:
-            self.visualize(resDict,frame)
+            cv2.putText(frame, 'frame %d, cut %d' % (resDict['frame_no'], resDict['cut_id']), (0, 20), 0, 1,
+                        (0, 255, 0), 2)
+            for people in resDict['person']:
+                cv2.rectangle(frame, (people['x1'], people['y1']), (people["x2"], people['y2']), (255, 255, 255), 2)
+                if people['face']:
+                    x1 = people['x1'] + people['face']['x1']
+                    x2 = people['x1'] + people['face']['x2']
+                    y1 = people['y1'] + people['face']['y1']
+                    y2 = people['y1'] + people['face']['y2']
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+            cv2.imshow('', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                return
         return resDict
