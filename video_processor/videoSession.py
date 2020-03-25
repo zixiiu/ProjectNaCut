@@ -48,6 +48,7 @@ class videoSession(object):
         self.video_capture.start()
 
     def release(self):
+        self.video_capture.stopprocess()
         self.video_capture.stream.release()
 
     def nextFrame(self):
@@ -57,7 +58,6 @@ class videoSession(object):
             return None
 
         # get yolo boxes
-        print('yolo')
         boxs = self.yolo.detect_image(frame)
         # print("box_num",len(boxs))
         features = self.encoder(frame, boxs)
@@ -93,7 +93,6 @@ class videoSession(object):
             pifDict = {'trackId': track.track_id, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2}
             peopleFrame = frame[y1:y2, x1:x2]
             faceDict = None
-            print('face')
             if self.cnnFlag:
                 try:
                     face_locations = face_recognition.face_locations(peopleFrame, model='cnn')
@@ -107,7 +106,6 @@ class videoSession(object):
                 break
             pifDict['face'] = faceDict
             resDict['person'].append(pifDict)
-        print('done!')
         if self.visualizeFlag:
             cv2.putText(frame, 'frame %d, cut %d' % (resDict['frame_no'], resDict['cut_id']), (0, 20), 0, 1,
                         (0, 255, 0), 2)

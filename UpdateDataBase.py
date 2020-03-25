@@ -26,7 +26,7 @@ for root, dirs, files in os.walk("/media/seb101-user/New Volume/Testv2/11336264"
     for name in files:
         if name.endswith('.mp4'):
             #print(os.path.join(root, name))
-            thisCvid = name.split('_')[0]
+            thisCvid = int(name.split('_')[0])
             thisAvid = root.split("/")[-1]
             fullpath = os.path.join(root, name)
             childPath = os.path.splitdrive(fullpath)[1]

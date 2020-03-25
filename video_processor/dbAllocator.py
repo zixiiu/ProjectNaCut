@@ -35,9 +35,9 @@ class Allocator(object):
     def getFirstUnProcessed(self):
         for thisVideo in self.session.query(Video).all():
             if thisVideo.complete == False:
-                break
-            return False
-        return thisVideo
+                return thisVideo
+        return False
+
 
     def cleanVid(self, thisVideo):
         session = self.session

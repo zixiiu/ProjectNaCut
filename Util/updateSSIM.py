@@ -4,11 +4,16 @@ import cv2
 
 def updateSSIM(stopped, FrameQueue, CutQueue, lastFrameNumber):
     while True:
-        if stopped:
+        if stopped.value == 1:
             break
 
         if not FrameQueue.empty():
             (grabbed, curr_frame, frame, last_frame) = FrameQueue.get()
+            if not grabbed:
+                stopped.value = 1
+                CutQueue.put((grabbed, curr_frame, frame, 0))
+                break
+
             score = 0
             if last_frame is not None:
                 # last_frame = cv2.cvtColor()

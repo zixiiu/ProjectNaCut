@@ -34,6 +34,7 @@ class FileVideoStream:
         assert os.path.isfile(path)
         self.stream = cv2.VideoCapture(path)
         self.stopped = False
+        self.stoppedCut = False
         self.paused = False
         self.transform = transform
         # self.yolo = YOLO()
@@ -46,6 +47,7 @@ class FileVideoStream:
         self.isCut_queue = self.Manager.Queue(maxsize=queue_size)
         self.face_queue = self.Manager.Queue(maxsize=queue_size)
         self.ssim_sync_fn = self.Manager.Value('i', 0)
+        self.stoppedSSIM = self.Manager.Value('i', 0)
         # self.face_sync_fn = self.Manager.Value('i', 0)
 
         # intialize thread
@@ -66,7 +68,7 @@ class FileVideoStream:
         # self.faceProc = []
         for i in range(self.SSIMprocessNumber):
             self.SSIMProc.append(
-                Process(target=updateSSIM, args=(self.stopped, self.raw_frame_queue, self.ssim_queue, self.ssim_sync_fn,)))
+                Process(target=updateSSIM, args=(self.stoppedSSIM, self.raw_frame_queue, self.ssim_queue, self.ssim_sync_fn,)))
         # for i in range(self.faceProcessNumber):
         #     self.faceProc.append(Thread(target=faceDetectProcess, args=(self.stopped, self.isCut_queue, self.face_queue, self.face_sync_fn,)))
 
@@ -82,13 +84,22 @@ class FileVideoStream:
         self.isCut_thread.start()
         return self
 
+    def stopprocess(self):
+        self.stoppedSSIM = 1
+        for i in self.SSIMProc:
+            i.join(5)
+
     def updateCut(self):
         while True:
-            if self.stopped:
+            if self.stoppedCut:
                 break
 
             if not self.ssim_queue.empty():
                 (grabbed, curr_frame, frame, score) = self.ssim_queue.get()
+                if not grabbed:
+                    self.stoppedCut = True
+                    self.isCut_queue.put((grabbed, curr_frame, frame, False))
+                    break
                 # last_frame = cv2.cvtColor()
                 isCut = self.cutDet.putFrame(score)
                 # boxs = self.yolo.detect_image(frame)
@@ -113,11 +124,12 @@ class FileVideoStream:
                 # read the next frame from the file
                 (grabbed, frame) = self.stream.read()
 
+                curr_frame = int(self.stream.get(cv2.CAP_PROP_POS_FRAMES))
+
                 if not grabbed:
+                    self.raw_frame_queue.put((grabbed, curr_frame, frame, last_frame))
                     self.stopped = True
                     continue
-
-                curr_frame = int(self.stream.get(cv2.CAP_PROP_POS_FRAMES))
 
                 if self.transform:
                     frame = self.transform(frame)
