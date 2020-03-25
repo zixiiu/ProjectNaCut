@@ -18,6 +18,7 @@ from tools import generate_detections as gdet
 from deep_sort.detection import Detection as ddet
 import Util.CutDetectior
 import face_recognition
+import signal
 
 
 class videoSession(object):
@@ -56,6 +57,7 @@ class videoSession(object):
             return None
 
         # get yolo boxes
+        print('yolo')
         boxs = self.yolo.detect_image(frame)
         # print("box_num",len(boxs))
         features = self.encoder(frame, boxs)
@@ -79,19 +81,25 @@ class videoSession(object):
         resDict['is_cut'] = isCut
         resDict['cut_id'] = self.cut_id
         resDict['person'] = []
+
         for track in self.tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
                 continue
             bbox = track.to_tlbr()
-            x1 = int(bbox[0])
-            y1 = int(bbox[1])
-            x2 = int(bbox[2])
-            y2 = int(bbox[3])
+            x1 = int(bbox[0]) if int(bbox[0]) >= 0 else 0
+            y1 = int(bbox[1]) if int(bbox[1]) >= 0 else 0
+            x2 = int(bbox[2]) if int(bbox[2]) <= 1920 else 1920
+            y2 = int(bbox[3]) if int(bbox[3]) <= 1080 else 1080
             pifDict = {'trackId': track.track_id, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2}
             peopleFrame = frame[y1:y2, x1:x2]
             faceDict = None
+            print('face')
             if self.cnnFlag:
-                face_locations = face_recognition.face_locations(peopleFrame, model='cnn')
+                try:
+                    face_locations = face_recognition.face_locations(peopleFrame, model='cnn')
+                except RuntimeError:
+                    print('error!')
+                    face_locations = []
             else:
                 face_locations = face_recognition.face_locations(peopleFrame)
             for top, right, bottom, left in face_locations:
@@ -99,6 +107,7 @@ class videoSession(object):
                 break
             pifDict['face'] = faceDict
             resDict['person'].append(pifDict)
+        print('done!')
         if self.visualizeFlag:
             cv2.putText(frame, 'frame %d, cut %d' % (resDict['frame_no'], resDict['cut_id']), (0, 20), 0, 1,
                         (0, 255, 0), 2)

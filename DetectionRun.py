@@ -9,7 +9,7 @@ import os
 
 if __name__ == '__main__':
 
-    al = Allocator('sqlite:///test.sqlite','F:\\')
+    al = Allocator('sqlite:///testv.sqlite','/media/seb101-user/New Volume/')
     total_frame = al.getTotalFrame()
     print(total_frame)
     vidPbar = tqdm.tqdm(total = al.getTotalVideo(), desc = 'Video:', position= 0)
@@ -30,11 +30,12 @@ if __name__ == '__main__':
 
         thisVidPbar = tqdm.tqdm(total = a.video_capture.getFrameCount(), desc="this Video", position= 2)
         while True:
-            thisVidPbar.update(1)
-            framePbar.update(1)
+            # thisVidPbar.update(1)
+            # framePbar.update(1)
             ret = a.nextFrame()
             if ret is None:
                 al.videoComplete()
+                a.release()
                 break
             #{'frame_no': 388, 'is_cut': False, 'cut_id': 3, 'person': [{'trackId': 3, 'x1': 314, 'y1': 56, 'x2': 1656, 'y2': 1039, 'face': {'x1': 461, 'x2': 846, 'y1': 162, 'y2': 547}}]}
             #print(ret)

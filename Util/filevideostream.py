@@ -28,7 +28,7 @@ from tools import generate_detections as gdet
 
 
 class FileVideoStream:
-    def __init__(self, path, transform=None, queue_size=64):
+    def __init__(self, path, transform=None, queue_size=128):
         # initialize the file video stream along with the boolean
         # used to indicate if the thread should be stopped or not
         assert os.path.isfile(path)
@@ -37,6 +37,7 @@ class FileVideoStream:
         self.paused = False
         self.transform = transform
         # self.yolo = YOLO()
+        self.stream.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
         # Queue n Value
         self.Manager = Manager()
@@ -59,7 +60,7 @@ class FileVideoStream:
 
 
         # init process
-        self.SSIMprocessNumber = 8
+        self.SSIMprocessNumber = 24
         # self.faceProcessNumber = 1
         self.SSIMProc = []
         # self.faceProc = []
