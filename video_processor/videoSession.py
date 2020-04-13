@@ -25,6 +25,7 @@ class videoSession(object):
     def __init__(self, videoPath, visualize = False, cnn = False):
         self.visualizeFlag = visualize
         self.cnnFlag = cnn
+        self.doFace = False
         # Yolo
         self.yolo = YOLO()
         # Definition of the parameters
@@ -91,16 +92,21 @@ class videoSession(object):
             x2 = int(bbox[2]) if int(bbox[2]) <= 1920 else 1920
             y2 = int(bbox[3]) if int(bbox[3]) <= 1080 else 1080
             pifDict = {'trackId': track.track_id, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2}
+            if (y2-y1)*(x2-x1)<500:
+                continue
             peopleFrame = frame[y1:y2, x1:x2]
             faceDict = None
-            if self.cnnFlag:
-                try:
-                    face_locations = face_recognition.face_locations(peopleFrame, model='cnn')
-                except RuntimeError:
-                    print('error!')
-                    face_locations = []
-            else:
-                face_locations = face_recognition.face_locations(peopleFrame)
+            face_locations = []
+            if self.doFace:
+                if self.cnnFlag:
+                    try:
+                        face_locations = face_recognition.face_locations(peopleFrame, model='cnn')
+                    except RuntimeError as e:
+                        print('error!')
+                        print(e)
+                        face_locations = []
+                else:
+                    face_locations = face_recognition.face_locations(peopleFrame)
             for top, right, bottom, left in face_locations:
                 faceDict = {'x1': left, 'x2': right, 'y1': top, 'y2': bottom}
                 break

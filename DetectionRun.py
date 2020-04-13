@@ -25,7 +25,7 @@ if __name__ == '__main__':
         al.newVideo()
         al.cleanVid(thisVideo)
         thisVideoPath = al.getFullPath(thisVideo)
-        a = videoSession(thisVideoPath, visualize=False, cnn=True)
+        a = videoSession(thisVideoPath, visualize=False, cnn=False)
         a.start()
 
         thisVidPbar = tqdm.tqdm(total = a.video_capture.getFrameCount(), desc="this Video", position= 2)
