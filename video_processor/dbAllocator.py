@@ -56,6 +56,9 @@ class Allocator(object):
         thisVideo.complete = True
         self.session.commit()
 
+    def writeFace(self, faceDict):
+        pass
+
     def write(self, ret, thisVideo):
         session = self.session
         currFrame = ret['frame_no']
