@@ -2,6 +2,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from video_processor.ORMModel import *
 import tqdm
+import Util.Purefilevideostream as cv
+import cv2
+import os
 
 engine = create_engine('sqlite:///testv_NOT_COMPLETE.sqlite')
 sm = sessionmaker()
@@ -51,7 +54,7 @@ while start < totalPIF:
 print(cropDict)
 
 detectFrame = []
-for video in session.query(Video).all():
+for video in tqdm.tqdm(session.query(Video).all()):
 	if video.id in faceVSet:
 		continue
 	#dict-ize
@@ -63,11 +66,23 @@ for video in session.query(Video).all():
 		else:
 			thisCropDict[c[5]] = [c]
 
-	#load video
+	#load video & crop
 	print(video.path)
+	h = cv.FileVideoStream(video.path)
+	h.start()
+	while True:
+		fn, ret = h.read()
+		if ret is None:
+			break
 
-	#crop
-	print(thisCropDict)
-	#
+		if fn in thisCropDict:
+			for box in thisCropDict[fn]:
+				#(x1, y1, x2, y2, PIFID, at_frame)
+				cropped = ret[box[1]:box[3], box[0]:box[2]].copy()
+				cv2.imwrite(os.path.join('./PIFforFace', str(box[4]) + '.jpg'))
+
+
+
+
 
 
