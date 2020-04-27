@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from video_processor.ORMModel import *
+from video_processor.dbAllocator import Allocator
 import tqdm
 import Util.Purefilevideostream as cv
+import face_recognition
 import cv2
 import os
 
@@ -53,6 +55,7 @@ while start < totalPIF:
 
 print(cropDict)
 
+al = Allocator('sqlite:///testv.sqlite')
 detectFrame = []
 for video in tqdm.tqdm(session.query(Video).all()):
 	if video.id in faceVSet:
@@ -74,12 +77,28 @@ for video in tqdm.tqdm(session.query(Video).all()):
 		fn, ret = h.read()
 		if ret is None:
 			break
-
+		frameToRun = []
+		PIFIdInList = []
 		if fn in thisCropDict:
 			for box in thisCropDict[fn]:
 				#(x1, y1, x2, y2, PIFID, at_frame)
-				cropped = ret[box[1]:box[3], box[0]:box[2]].copy()
-				cv2.imwrite(os.path.join('./PIFforFace', str(box[4]) + '.jpg'))
+				#cv2.imwrite(os.path.join('./PIFforFace', str(box[4]) + '.jpg'))
+				#face_locations = face_recognition.face_locations(cropped, model='cnn')
+				frameToRun.append(ret[box[1]:box[3], box[0]:box[2]].copy())
+				PIFIdInList.append()
+				if len(frameToRun) == 32:
+					batch_of_face_locations = face_recognition.batch_face_locations(frameToRun,
+					                                                                number_of_times_to_upsample=0)
+
+					for i in range(len(frameToRun)):
+						PIFId = PIFIdInList[i]
+						face_loc = batch_of_face_locations[i]
+
+						for top, right, bottom, left in face_loc:
+							faceDict = {'x1': left, 'x2': right, 'y1': top, 'y2': bottom}
+							al.writeFace(left,top,right,bottom,PIFId)
+							break
+
 
 
 

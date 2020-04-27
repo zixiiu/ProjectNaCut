@@ -56,8 +56,22 @@ class Allocator(object):
         thisVideo.complete = True
         self.session.commit()
 
-    def writeFace(self, faceDict):
-        pass
+    def writeFace(self, x1, y1, x2, y2, PIFID):
+        thisPIF = self.session.query(PersonInFrame).get(PIFID)
+        # Face(x1=faceDict['x1'], y1=faceDict['y1'], x2=faceDict['x2'], y2=faceDict['y2'],
+        #                         x1_abs=person['x1'] + faceDict['x1'],
+        #                         x2_abs=person['x1'] + faceDict['x2'], y1_abs=person['y1'] + faceDict['y1'],
+        #                         y2_abs=person['y1'] + faceDict['y2'],
+        #                         personInFrame=thisPIF, video=thisVideo, at_frame=currFrame, frame=thisFrame)
+        thisFace = Face(x1 = x1, y1 = y1, x2 = x2, y2 = y2,
+                        x1_abs= thisPIF.x1 + x1, x2_abs= thisPIF.x1 + x2,
+                        y1_abs=thisPIF.y1 + y1, y2_abs= thisPIF.y1 + y2,
+                        at_frame = thisPIF.at_frame, frame= thisPIF.thisFrame,
+                        personInFrame=thisPIF, video=thisPIF.video
+                        )
+        self.session.add(thisFace)
+        self.session.commit()
+
 
     def write(self, ret, thisVideo):
         session = self.session
