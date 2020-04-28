@@ -8,7 +8,7 @@ import face_recognition
 import cv2
 import os
 
-engine = create_engine('sqlite:///testv_NOT_COMPLETE.sqlite')
+engine = create_engine('sqlite:///testv.sqlite')
 sm = sessionmaker()
 sm.configure(bind=engine)
 session = sm()
@@ -34,11 +34,13 @@ cropDict = {}
 # {videoID: (x1, y1, x2, y2, PIFID, at_frame)
 pbar2 = tqdm.tqdm(total=totalPIF)
 faceVSet = set()
+totalPIFNo = 0
 while start < totalPIF:
 	PIF = session.query(PersonInFrame).filter(PersonInFrame.id > start).limit(step).all()
 	for p in PIF:
 		if p.id not in hasFacePIFSet: #does not have face
 			Vid = p.video_id
+			totalPIFNo += 1
 			if Vid not in cropDict:
 				cropDict[Vid] = [(p.x1, p.y1, p.x2, p.y2, p.id, p.at_frame)]
 			else:
@@ -53,12 +55,19 @@ while start < totalPIF:
 	start += step
 	pbar2.update(step)
 
-print(cropDict)
+#print(cropDict)
 
-al = Allocator('sqlite:///testv.sqlite')
+al = Allocator('sqlite:///testv.sqlite', '/media/seb101-user/New Volume/')
 detectFrame = []
-for video in tqdm.tqdm(session.query(Video).all()):
+pbar2.close()
+pbar3 = tqdm.tqdm(desc='total:', total = totalPIFNo)
+frameToRun = []
+PIFIdInList = []
+
+for video in session.query(Video).all():
 	if video.id in faceVSet:
+		pbar3.update(cropDict[video.id].__len__())
+		pbar3.refresh()
 		continue
 	#dict-ize
 	thisCropDict = {}
@@ -70,23 +79,30 @@ for video in tqdm.tqdm(session.query(Video).all()):
 			thisCropDict[c[5]] = [c]
 
 	#load video & crop
-	print(video.path)
+
+
+	#print(video.path)
 	h = cv.FileVideoStream(video.path)
 	h.start()
 	while True:
 		fn, ret = h.read()
 		if ret is None:
 			break
-		frameToRun = []
-		PIFIdInList = []
+
 		if fn in thisCropDict:
 			for box in thisCropDict[fn]:
 				#(x1, y1, x2, y2, PIFID, at_frame)
 				#cv2.imwrite(os.path.join('./PIFforFace', str(box[4]) + '.jpg'))
 				#face_locations = face_recognition.face_locations(cropped, model='cnn')
-				frameToRun.append(ret[box[1]:box[3], box[0]:box[2]].copy())
-				PIFIdInList.append()
+				cropped = ret[box[1]:box[3], box[0]:box[2]].copy()
+				frameToRun.append(cropped)
+				PIFIdInList.append(box[4])
+				#cv2.imshow('PIF', cropped)
+				#cv2.waitKey(1)
+				pbar3.update(1)
+
 				if len(frameToRun) == 32:
+
 					batch_of_face_locations = face_recognition.batch_face_locations(frameToRun,
 					                                                                number_of_times_to_upsample=0)
 
@@ -98,6 +114,8 @@ for video in tqdm.tqdm(session.query(Video).all()):
 							faceDict = {'x1': left, 'x2': right, 'y1': top, 'y2': bottom}
 							al.writeFace(left,top,right,bottom,PIFId)
 							break
+					frameToRun = []
+					PIFIdInList = []
 
 
 
