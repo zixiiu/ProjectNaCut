@@ -75,8 +75,11 @@ detectFrame = []
 pbar2.close()
 pbar3 = tqdm.tqdm(desc='total:', total = totalPIFNo)
 
-frameToRun = [[]] * 100
-PIFIdInList = [[]] * 100
+frameToRun = []
+PIFIdInList = []
+for i in range(100):
+	frameToRun.append([])
+	PIFIdInList.append([])
 
 for video in session.query(Video).all():
 	if video.id in faceVSet:
@@ -96,14 +99,16 @@ for video in session.query(Video).all():
 
 
 	#print(video.path)
-	h = cv.FileVideoStream(video.path)
-	h.start()
+	videoHandle = cv.FileVideoStream(video.path)
+	videoHandle.start()
 	while True:
-		fn, ret = h.read()
+		fn, ret = videoHandle.read()
+
 		if ret is None:
 			break
 
 		if fn in thisCropDict:
+			ret = cv2.copyMakeBorder(ret, 0, 108, 0, 192, cv2.BORDER_CONSTANT, value=[0, 0, 0])
 			for box in thisCropDict[fn]:
 				#(x1, y1, x2, y2, PIFID, at_frame)
 				#cv2.imwrite(os.path.join('./PIFforFace', str(box[4]) + '.jpg'))
@@ -114,12 +119,14 @@ for video in session.query(Video).all():
 				PIFIdInList[zone].append(box[4])
 				#cv2.imshow('PIF', cropped)
 				#cv2.waitKey(1)
-				pbar3.update(1)
+
 
 				if len(frameToRun[zone]) >= 32:
 
 					batch_of_face_locations = face_recognition.batch_face_locations(frameToRun[zone],
 					                                                                number_of_times_to_upsample=0)
+					pbar3.update(32)
+					pbar3.refresh()
 
 					for i in range(len(frameToRun[zone])):
 						PIFId = PIFIdInList[zone][i]

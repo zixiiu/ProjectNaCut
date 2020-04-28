@@ -66,7 +66,7 @@ class Allocator(object):
         thisFace = Face(x1 = x1, y1 = y1, x2 = x2, y2 = y2,
                         x1_abs= thisPIF.x1 + x1, x2_abs= thisPIF.x1 + x2,
                         y1_abs=thisPIF.y1 + y1, y2_abs= thisPIF.y1 + y2,
-                        at_frame = thisPIF.at_frame, frame= thisPIF.thisFrame,
+                        at_frame = thisPIF.at_frame, frame= thisPIF.frame,
                         personInFrame=thisPIF, video=thisPIF.video
                         )
         self.session.add(thisFace)
