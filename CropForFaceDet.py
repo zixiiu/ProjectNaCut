@@ -31,6 +31,7 @@ totalPIF = session.query(PersonInFrame).count()
 start = 0
 step = 100
 cropDict = {}
+
 # {videoID: (x1, y1, x2, y2, PIFID, at_frame)
 pbar2 = tqdm.tqdm(total=totalPIF)
 faceVSet = set()
@@ -55,14 +56,27 @@ while start < totalPIF:
 	start += step
 	pbar2.update(step)
 
-#print(cropDict)
+def findZone(x1, y1, x2, y2):
+	#return w h areacode
+	# !!1080p Hard Code!
+	w = x2 - x1 - 1
+	h = y2 - y1 - 1
+	xZone = w // 192
+	yZone = h // 108
+	zone = xZone + yZone * 10
+	wZone = 192 * (xZone + 1)
+	hZone = 108 * (yZone + 1)
+	return wZone, hZone, zone
+
+
 
 al = Allocator('sqlite:///testv.sqlite', '/media/seb101-user/New Volume/')
 detectFrame = []
 pbar2.close()
 pbar3 = tqdm.tqdm(desc='total:', total = totalPIFNo)
-frameToRun = []
-PIFIdInList = []
+
+frameToRun = [[]] * 100
+PIFIdInList = [[]] * 100
 
 for video in session.query(Video).all():
 	if video.id in faceVSet:
@@ -94,28 +108,41 @@ for video in session.query(Video).all():
 				#(x1, y1, x2, y2, PIFID, at_frame)
 				#cv2.imwrite(os.path.join('./PIFforFace', str(box[4]) + '.jpg'))
 				#face_locations = face_recognition.face_locations(cropped, model='cnn')
-				cropped = ret[box[1]:box[3], box[0]:box[2]].copy()
-				frameToRun.append(cropped)
-				PIFIdInList.append(box[4])
+				w, h, zone = findZone(box[0],box[1],box[2],box[3])
+				cropped = ret[box[1]:box[1]+h, box[0]:box[0]+w].copy()
+				frameToRun[zone].append(cropped)
+				PIFIdInList[zone].append(box[4])
 				#cv2.imshow('PIF', cropped)
 				#cv2.waitKey(1)
 				pbar3.update(1)
 
-				if len(frameToRun) == 32:
+				if len(frameToRun[zone]) >= 32:
 
-					batch_of_face_locations = face_recognition.batch_face_locations(frameToRun,
+					batch_of_face_locations = face_recognition.batch_face_locations(frameToRun[zone],
 					                                                                number_of_times_to_upsample=0)
 
-					for i in range(len(frameToRun)):
-						PIFId = PIFIdInList[i]
+					for i in range(len(frameToRun[zone])):
+						PIFId = PIFIdInList[zone][i]
 						face_loc = batch_of_face_locations[i]
 
 						for top, right, bottom, left in face_loc:
 							faceDict = {'x1': left, 'x2': right, 'y1': top, 'y2': bottom}
 							al.writeFace(left,top,right,bottom,PIFId)
 							break
-					frameToRun = []
-					PIFIdInList = []
+					frameToRun[zone] = []
+					PIFIdInList[zone] = []
+
+for i in range(len(frameToRun)):
+	batch_of_face_locations = face_recognition.batch_face_locations(frameToRun[i],
+	                                                                number_of_times_to_upsample=0)
+	for eax in range(len(frameToRun[i])):
+		PIFId = PIFIdInList[i][eax]
+		face_loc = batch_of_face_locations[eax]
+
+		for top, right, bottom, left in face_loc:
+			faceDict = {'x1': left, 'x2': right, 'y1': top, 'y2': bottom}
+			al.writeFace(left, top, right, bottom, PIFId)
+			break
 
 
 
