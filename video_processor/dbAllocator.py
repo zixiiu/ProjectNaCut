@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 import cv2 as cv
+import tqdm
 
 class Allocator(object):
     def __init__(self, db_path, drive):
@@ -15,6 +16,15 @@ class Allocator(object):
 
         self.thisCut = None
         self.thisPersonDict = {}
+
+    def queryAllPerson(self):
+        return self.session.query(Person).all()
+
+    def queryFaceByPerson(self, person):
+        res = []
+        for pif in person.person_in_frame:
+            res.append(self.session.query(Face).filter(Face.id == pif.id).all()[0])
+        return res
 
     def getTotalVideo(self):
         return len(self.session.query(Video).all())

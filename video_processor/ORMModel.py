@@ -56,6 +56,9 @@ class Person(Base):
 
     person_in_frame = relationship("PersonInFrame", back_populates="person")
 
+    keyface_id = Column(Integer, ForeignKey('face.id'))
+    keyface = relationship('Face')
+
 class PersonInFrame(Base):
     __tablename__ = 'person_in_frame'
     id = Column(Integer, primary_key=True)
@@ -73,6 +76,7 @@ class PersonInFrame(Base):
     frame = relationship(Frame)
 
     face=relationship("Face", uselist = False, back_populates = "personInFrame")
+
 
     video_id =  Column(Integer, ForeignKey('video.id'))
     video = relationship(Video)
