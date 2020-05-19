@@ -47,11 +47,12 @@ class Person(Base):
     start_frame_no = Column(Integer)
     end_frame_no = Column(Integer)
     name_mark = Column(String)
+    name_conf = Column(Integer)
 
     cut_id = Column(Integer, ForeignKey('cut.id'))
     cut = relationship(Cut)
 
-    video_id =  Column(Integer, ForeignKey('video.id'))
+    video_id = Column(Integer, ForeignKey('video.id'))
     video = relationship(Video)
 
     person_in_frame = relationship("PersonInFrame", back_populates="person")

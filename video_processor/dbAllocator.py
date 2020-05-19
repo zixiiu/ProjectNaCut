@@ -1,5 +1,5 @@
 from video_processor.ORMModel import *
-from video_processor.videoSession import videoSession
+#from video_processor.videoSession import videoSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
@@ -17,13 +17,27 @@ class Allocator(object):
         self.thisCut = None
         self.thisPersonDict = {}
 
+    def getVideoById(self, id):
+        return self.session.query(Video).get(id)
+
+    def getFacebyID(self, id):
+        return self.session.query(Face).get(id)
+
+    def queryPersonByCut(self, cut_id):
+        return self.session.query(Person).filter(Person.cut_id == cut_id).all()
+
+    def queryPersonByKeyfaceId(self, keyface_id):
+        ret = self.session.query(Person).filter(Person.keyface_id == keyface_id).all()
+        return None if len(ret) != 1 else ret[0]
+
     def queryAllPerson(self):
         return self.session.query(Person).all()
 
     def queryFaceByPerson(self, person):
         res = []
         for pif in person.person_in_frame:
-            res.append(self.session.query(Face).filter(Face.id == pif.id).all()[0])
+            for f in self.session.query(Face).filter(Face.personInFrame_id == pif.id).all():
+                res.append(f)
         return res
 
     def getTotalVideo(self):
