@@ -1,5 +1,7 @@
 import tqdm
-
+import cv2
+from PIL import Image, ImageDraw, ImageFont
+import numpy as np
 
 def getPathForVideo(v):
 	return v.path.replace('/media/seb101-user/New Volume/Testv2/', 'E:/Testv2/')
@@ -15,7 +17,7 @@ def getStartStop(person, length):
 	elif keyFrame - length // 2 <= person.start_frame_no:
 		return (person.start_frame_no, person.start_frame_no + length)
 	else:
-		return (keyFrame - length // 2, keyFrame + length // 2)
+		return (keyFrame - length // 2, keyFrame - length // 2 + length)
 
 
 def DominateFilter(al, perList):
@@ -48,3 +50,19 @@ def faceSizeFilter(per, threshold):
 			p2.append(p)
 
 	return p2
+
+
+def change_cv2_draw(image,strs,local,sizes,colour):
+    cv2img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    pilimg = Image.fromarray(cv2img)
+    draw = ImageDraw.Draw(pilimg)
+    font = ImageFont.truetype("c:/Windows/fonts/msyh.ttc",sizes, encoding="utf-8")
+    shadow = 3
+    draw.text((local[0] -shadow, local[1]), strs, (0,0,0), font=font)
+    draw.text((local[0] +shadow, local[1]), strs, (0,0,0), font=font)
+    draw.text((local[0], local[1] + shadow), strs, (0,0,0), font=font)
+    draw.text((local[0], local[1] - shadow), strs, (0,0,0), font=font)
+
+    draw.text(local, strs, colour, font=font)
+    image = cv2.cvtColor(np.array(pilimg), cv2.COLOR_RGB2BGR)
+    return image
